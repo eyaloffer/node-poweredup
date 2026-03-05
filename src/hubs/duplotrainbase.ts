@@ -25,7 +25,8 @@ export class DuploTrainBase extends LPF2Hub {
             peripheral.advertisement.serviceUuids.indexOf(Consts.BLEService.LPF2_HUB.replace(/-/g, "")) >= 0 &&
             peripheral.advertisement.manufacturerData &&
             peripheral.advertisement.manufacturerData.length > 3 &&
-            peripheral.advertisement.manufacturerData[3] === Consts.BLEManufacturerData.DUPLO_TRAIN_BASE_ID
+            (peripheral.advertisement.manufacturerData[3] === Consts.BLEManufacturerData.DUPLO_TRAIN_BASE_ID ||
+             peripheral.advertisement.manufacturerData[3] === 0x21) // new firmware
         );
     }
 
@@ -46,8 +47,9 @@ export class DuploTrainBase extends LPF2Hub {
 }
 
 export const PortMap: {[portName: string]: number} = {
-    "MOTOR": 0,
-    "COLOR": 18,
-    "SPEEDOMETER": 19
+    "MOTOR":       0x32,  // new firmware port IDs
+    "COLOR":       0x33,
+    "SPEAKER":     0x34,
+    "SPEEDOMETER": 0x36,
 };
 

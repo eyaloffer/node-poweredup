@@ -16,12 +16,33 @@ export class DuploTrainBaseSpeaker extends Device {
 
     /**
      * Play a built-in train sound.
+     *
+     * New firmware (device type 0x5a): mode=0x01, payload=[0x07, soundId, 0x00, 0x00]
+     * Only DuploTrainBaseSound.HORN (soundId=1) is confirmed on new firmware.
+     *
      * @param {DuploTrainBaseSound} sound
      * @returns {Promise<CommandFeedback>} Resolved upon completion of command.
      */
     public playSound (sound: Consts.DuploTrainBaseSound) {
         this.subscribe(Mode.SOUND);
-        return this.writeDirect(0x01, Buffer.from([sound]));
+        return this.writeDirect(0x01, Buffer.from([0x07, sound, 0x00, 0x00]));
+    }
+
+    /**
+     * Set the LED color of the train.
+     *
+     * New firmware (device type 0x5a): mode=0x01, payload=[0x04, 0x01, colorCode, 0x00]
+     *
+     * Color codes: 0x00=off, 0x01=white, 0x07=green, 0x08=yellow, 0x09=lightblue,
+     *              0x0a=purple, 0x0b=lightpink, 0x0c=red, 0x0d=redpink,
+     *              0x0e=purplepink, 0x0f=darkblue
+     *
+     * @param {number} color
+     * @returns {Promise<CommandFeedback>} Resolved upon completion of command.
+     */
+    public setLEDColor (color: number) {
+        this.subscribe(Mode.SOUND);
+        return this.writeDirect(0x01, Buffer.from([0x04, 0x01, color, 0x00]));
     }
 
     /**

@@ -447,8 +447,10 @@ export class BaseHub extends EventEmitter {
             [Consts.DeviceType.REMOTE_CONTROL_BUTTON]: RemoteControlButton,
             [Consts.DeviceType.HUB_LED]: HubLED,
             [Consts.DeviceType.DUPLO_TRAIN_BASE_COLOR_SENSOR]: DuploTrainBaseColorSensor,
+            [Consts.DeviceType.DUPLO_TRAIN_BASE_COLOR_SENSOR_V2]: DuploTrainBaseColorSensor,  // new firmware
             [Consts.DeviceType.DUPLO_TRAIN_BASE_MOTOR]: DuploTrainBaseMotor,
             [Consts.DeviceType.DUPLO_TRAIN_BASE_SPEAKER]: DuploTrainBaseSpeaker,
+            [Consts.DeviceType.DUPLO_TRAIN_BASE_SPEAKER_V2]: DuploTrainBaseSpeaker,           // new firmware
             [Consts.DeviceType.DUPLO_TRAIN_BASE_SPEEDOMETER]: DuploTrainBaseSpeedometer,
             [Consts.DeviceType.MARIO_ACCELEROMETER]: MarioAccelerometer,
             [Consts.DeviceType.MARIO_BARCODE_SENSOR]: MarioBarcodeSensor,

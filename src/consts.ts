@@ -107,6 +107,8 @@ export enum DeviceType {
     MARIO_ACCELEROMETER = 71,
     MARIO_BARCODE_SENSOR = 73,
     MARIO_PANTS_SENSOR = 74,
+    DUPLO_TRAIN_BASE_SPEAKER_V2 = 90,       // New firmware (mfr byte[3]=0x21)
+    DUPLO_TRAIN_BASE_COLOR_SENSOR_V2 = 91,  // New firmware (mfr byte[3]=0x21)
     TECHNIC_MEDIUM_ANGULAR_MOTOR_GREY = 75, // Mindstorms
     TECHNIC_LARGE_ANGULAR_MOTOR_GREY = 76, // Technic Control+
 }
@@ -183,18 +185,16 @@ export enum BrakingStyle {
 
 /**
  * @typedef DuploTrainBaseSound
- * @property {number} BRAKE 3
- * @property {number} STATION_DEPARTURE 5
- * @property {number} WATER_REFILL 7
- * @property {number} HORN 9
- * @property {number} STEAM 10
+ * @property {number} HORN 1
+ *
+ * New firmware (device type 0x5a, mfr byte[3]=0x21):
+ *   Only HORN (soundId=1) is confirmed. Command format:
+ *   mode=0x01, payload=[0x07, soundId, 0x00, 0x00]
+ *
+ * Old firmware sound IDs (device type 0x29): BRAKE=3, DEPARTURE=5, WATER=7, HORN=9, STEAM=10
  */
 export enum DuploTrainBaseSound {
-    BRAKE = 3,
-    STATION_DEPARTURE = 5,
-    WATER_REFILL = 7,
-    HORN = 9,
-    STEAM = 10
+    HORN = 1
 }
 
 

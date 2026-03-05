@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>שליטה ברכבת</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+  }
+  h1 { font-size: 1.8rem; margin-top: 8px; }
+
+  /* Status bar */
+  #status-bar {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 12px 24px;
+    text-align: center;
+    width: 100%;
+    max-width: 560px;
+  }
+  #train-status { font-size: 0.85rem; color: #aaa; }
+  #train-status.ready { color: #4caf50; }
+  #heard { font-size: 1.3rem; min-height: 1.8rem; margin: 6px 0; }
+  #last-cmd { font-size: 0.85rem; color: #aaa; }
+
+  /* LED preview */
+  #led-preview {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: #333;
+    border: 3px solid #555;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  /* Top row: LED + status */
+  .top-row { display: flex; align-items: center; gap: 16px; width: 100%; max-width: 560px; }
+  .top-row #status-bar { flex: 1; }
+
+  /* Drive buttons */
+  .drive-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 560px;
+  }
+  .drive-pad .big-btn {
+    font-size: 1.5rem;
+    padding: 18px 0;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #0f3460;
+    color: #eee;
+    transition: background 0.1s, transform 0.1s;
+    user-select: none;
+  }
+  .drive-pad .big-btn:active, .drive-pad .big-btn.active { background: #e94560; transform: scale(0.95); }
+  .drive-pad .big-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #btn-forward  { grid-column: 2; }
+  #btn-backward { grid-column: 2; }
+  #btn-stop     { grid-column: 1; background: #7b0f1e; }
+  #btn-stop:active { background: #e94560; }
+  #btn-horn     { grid-column: 3; background: #1a5276; }
+  #btn-horn:active { background: #5dade2; }
+
+  /* Color buttons */
+  .color-section { width: 100%; max-width: 560px; }
+  .color-section h2 { font-size: 0.85rem; color: #aaa; margin-bottom: 8px; }
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .color-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #111;
+    font-weight: bold;
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+  }
+  .color-btn:active { transform: scale(0.93); }
+  .color-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .color-btn.light-text { color: #eee; }
+
+  /* Mic button */
+  #mic-btn {
+    padding: 13px 40px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    background: #e94560;
+    color: white;
+    transition: background 0.2s;
+    width: 100%;
+    max-width: 560px;
+  }
+  #mic-btn.listening { background: #4caf50; }
+  #mic-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<h1>🚂 שליטה ברכבת</h1>
+
+<div class="top-row">
+  <div id="led-preview"></div>
+  <div id="status-bar">
+    <div id="train-status">מתחבר לרכבת...</div>
+    <div id="heard">—</div>
+    <div id="last-cmd">&nbsp;</div>
+  </div>
+</div>
+
+<!-- Drive pad -->
+<div class="drive-pad">
+  <button class="big-btn" id="btn-forward"  disabled data-action="forward">⬆️<br>קדימה</button>
+  <button class="big-btn" id="btn-stop"     disabled data-action="stop">🛑<br>עצור</button>
+  <button class="big-btn" id="btn-horn"     disabled data-action="horn">📯<br>צופר</button>
+  <button class="big-btn" id="btn-backward" disabled data-action="backward">⬇️<br>אחורה</button>
+</div>
+
+<!-- Color buttons -->
+<div class="color-section">
+  <h2>צבע תאורה:</h2>
+  <div class="color-grid" id="color-grid"></div>
+</div>
+
+<!-- Mic -->
+<button id="mic-btn" disabled>🎤 התחל להאזין (קול)</button>
+
+<script>
+const LED_COLORS = [
+  { word: 'ירוק',  value: 0x07, css: '#43a047', label: '🟢 ירוק' },
+  { word: 'צהוב',  value: 0x08, css: '#fdd835', label: '🟡 צהוב' },
+  { word: 'כחול',  value: 0x0f, css: '#1565c0', label: '🔵 כחול',  light: true },
+  { word: 'סגול',  value: 0x0a, css: '#8e24aa', label: '🟣 סגול',  light: true },
+  { word: 'אדום',  value: 0x0c, css: '#e53935', label: '🔴 אדום',  light: true },
+  { word: 'לבן',   value: 0x01, css: '#e0e0e0', label: '⚪ לבן' },
+  { word: 'תכלת',  value: 0x09, css: '#29b6f6', label: '🩵 תכלת' },
+  { word: 'כבה',   value: 0x00, css: '#444',    label: '⬛ כבה',   light: true },
+];
+
+const VOICE_COMMANDS = [
+  { words: ['קדימה'],         action: 'forward',  label: '⬆️ קדימה' },
+  { words: ['אחורה'],         action: 'backward', label: '⬇️ אחורה' },
+  { words: ['עצור', 'סטופ'],  action: 'stop',     label: '🛑 עצור' },
+  { words: ['צופר', 'צפר'],   action: 'horn',     label: '📯 צופר' },
+  ...LED_COLORS.map(c => ({ words: [c.word], action: 'led', value: c.value, label: `💡 ${c.word}` })),
+];
+
+// --- Elements ---
+const trainStatusEl = document.getElementById('train-status');
+const heardEl       = document.getElementById('heard');
+const lastCmdEl     = document.getElementById('last-cmd');
+const micBtn        = document.getElementById('mic-btn');
+const ledPreview    = document.getElementById('led-preview');
+const colorGrid     = document.getElementById('color-grid');
+
+// Build color buttons
+LED_COLORS.forEach(c => {
+  const btn = document.createElement('button');
+  btn.className = 'color-btn' + (c.light ? ' light-text' : '');
+  btn.style.background = c.css;
+  btn.textContent = c.label;
+  btn.disabled = true;
+  btn.dataset.action = 'led';
+  btn.dataset.value  = c.value;
+  btn.dataset.css    = c.css;
+  btn.addEventListener('click', () => {
+    ledPreview.style.background = c.css;
+    sendCommand({ action: 'led', value: c.value, label: `💡 ${c.word}` });
+  });
+  colorGrid.appendChild(btn);
+});
+
+// --- Train readiness ---
+let trainReady = false;
+function setReady() {
+  trainReady = true;
+  trainStatusEl.textContent = '✅ רכבת מחוברת';
+  trainStatusEl.className = 'ready';
+  document.querySelectorAll('button[data-action]').forEach(b => b.disabled = false);
+  document.querySelectorAll('.color-btn').forEach(b => b.disabled = false);
+  micBtn.disabled = false;
+}
+
+async function checkReady() {
+  try {
+    const { ready } = await (await fetch('/status')).json();
+    if (ready) setReady(); else setTimeout(checkReady, 1000);
+  } catch { setTimeout(checkReady, 1000); }
+}
+checkReady();
+
+// --- Drive button events ---
+document.querySelectorAll('.big-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sendCommand({ action: btn.dataset.action, label: btn.textContent.replace('\n','') });
+  });
+});
+
+// --- Send command ---
+async function sendCommand({ action, value, label }) {
+  lastCmdEl.textContent = label || action;
+  try {
+    await fetch('/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, value }),
+    });
+  } catch (e) {
+    lastCmdEl.textContent = `שגיאה: ${e.message}`;
+  }
+}
+
+// --- Speech recognition ---
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) {
+  micBtn.textContent = '❌ Chrome בלבד';
+  micBtn.disabled = true;
+}
+
+let recognition, listening = false;
+if (SR) {
+  recognition = new SR();
+  recognition.lang = 'he-IL';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  micBtn.addEventListener('click', () => {
+    if (!listening) {
+      recognition.start();
+      listening = true;
+      micBtn.textContent = '🔴 מאזין... (לחץ לעצור)';
+      micBtn.className = 'listening';
+    } else {
+      recognition.stop();
+      listening = false;
+      micBtn.textContent = '🎤 התחל להאזין (קול)';
+      micBtn.className = '';
+      heardEl.textContent = '—';
+    }
+  });
+
+  recognition.onresult = (e) => {
+    const text = e.results[e.results.length - 1][0].transcript.trim();
+    heardEl.textContent = `"${text}"`;
+    for (const cmd of VOICE_COMMANDS) {
+      if (cmd.words.some(w => text.includes(w))) {
+        if (cmd.action === 'led') {
+          const c = LED_COLORS.find(x => x.word === cmd.words[0]);
+          if (c) ledPreview.style.background = c.css;
+        }
+        sendCommand(cmd);
+        return;
+      }
+    }
+  };
+
+  recognition.onend = () => { if (listening) recognition.start(); };
+  recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') heardEl.textContent = `שגיאה: ${e.error}`;
+  };
+}
+</script>
+</body>
+</html>
